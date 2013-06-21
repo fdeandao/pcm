@@ -4,7 +4,7 @@ DEL /S /F /Q %CD%\runner\
 MKDIR %CD%\runner\generate
 MKDIR %CD%\runner\logs
 MKDIR %CD%\runner\inputdata
-xcopy /yE C:\Users\koferdo\Documents\NetBeansProjects\pcm\src %CD%\server\
+xcopy /yE C:\Users\koferdo\Documents\NetBeansProjects\pcmserver\src %CD%\server\
 xcopy /y C:\myapps\peswork\conf.properties %CD%\runner\
 xcopy /y C:\myapps\peswork\initdb.bat %CD%\runner\
 xcopy /y C:\myapps\peswork\initsql.bat %CD%\runner\
