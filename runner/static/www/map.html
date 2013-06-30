@@ -7,8 +7,164 @@ and open the template in the editor.
     <head>
         <title></title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <link rel="stylesheet" href="css/pcm.site.css">
+        <link rel="stylesheet" href="css/jquery-ui.css">
+        <link rel="stylesheet" href="css/jqtree.css">
+        <script  src="/js/libs/jquery-1.9.0/jquery.min.js"></script>
+        <script  src="/js/libs/jqueryui-1.10.0/jquery-ui.min.js"></script>
+        <script src="/js/tree.jquery.js"></script>
+        <script  src="/js/pcm.utils.js"></script>
+        <script>
+            function addBtnGetFiles(currData, id) {
+                return "<input type='button' value='Show Pictures' onclick='loadImagesAjax($(this), \"" + id + "\", \"" +
+                        currData.facefile.replace(/\\/g, "\\\\") + "\", \"" + currData.hairfile.replace(/\\/g, "\\\\") + "\")' />" +
+                        "<div id='" + id + "_pictures' style='display:none;'>" +
+                        "</div>";
+            }
+
+            /*function postdoneFileToPlayer(options, data) {
+                $("#" + options.div).dialog("open");
+            }
+            function failFileToPlayer(options, data) {
+                $("#" + options.div).empty();
+                alert("error loading data");
+            }*/
+
+            /*function getFileToPlayer(idfile, divResp, id) {
+             createTableMaster({
+             div: divResp,
+             prefix: "subplayer_",
+             headJSON: id + "_hid",
+             params: [
+             {
+             type: "checkbox",
+             label: "More options players",
+             name: "more_players",
+             onchange: (function() {
+             var dat = $("#subplayer__url").val();
+             if ($(this).is(':checked')) {
+             $("#subplayer__url").val(dat.replace("false", "true"));
+             } else {
+             $("#subplayer__url").val(dat.replace("true", "false"));
+             }
+             $("#subplayer__start_p").val(0);
+             $("#subplayer__count_p").val(def.count);
+             loadAjax(getAjaxParams("subplayer__json_stringify"));
+             })
+             }
+             ],
+             ajax: {
+             url: "/api/filestoplayer/" + idfile + "/false",
+             type: "GET",
+             datatype: "JSON"
+             },
+             dataJson: "filestoplayer",
+             id: idfile,
+             extends: {
+             postDone: "postdoneFileToPlayer",
+             fail: "failFileToPlayer"
+             }
+             });
+             }*/
+
+            $(document).ready(function() {
+                $(document).ajaxStart(function() {
+                    showProgress();
+                }).ajaxStop(function() {
+                    hideProgress();
+                });
+
+                $("#header").load("menu.html");
+                $("#footer").load("footer.html");
+                $("#list_files").dialog({
+                    autoOpen: false,
+                    resizable: true,
+                    width: 'auto',
+                    modal: true
+                });
+
+                createTableMaster({
+                    div: "list_map",
+                    prefix: "maps_",
+                    head: "List Map",
+                    params: [
+                        {
+                            type: "checkbox",
+                            label: "Only No Config",
+                            name: "configmap",
+                            onchange: (function() {
+                                var dat = $("#maps__url").val();
+                                if ($(this).is(':checked')) {
+                                    $("#maps__url").val(dat.replace("playersmap", "playersmapconflic"));
+                                } else {
+                                    $("#maps__url").val(dat.replace("playersmapconflic", "playersmap"));
+                                }
+                                $("#maps__start_p").val(0);
+                                $("#maps__count_p").val(def.count);
+                                loadAjax(getAjaxParams("maps__json_stringify"));
+                            })
+                        },
+                        {
+                            type: "select",
+                            label: "Nationality",
+                            name: "countrysel",
+                            data: "country",
+                            onchange: (function() {
+                                $("#maps__url").val(replaceArr($("#maps__url").val(), $(this).val(), 3));
+                                $("#maps__start_p").val(0);
+                                $("#maps__count_p").val(def.count);
+                                loadAjax(getAjaxParams("maps__json_stringify"));
+                            })
+                        },
+                        {
+                            type: "select",
+                            label: "Club",
+                            name: "clubsel",
+                            data: "club",
+                            onchange: (function() {
+                                $("#maps__url").val(replaceArr($("#maps__url").val(), $(this).val(), 4));
+                                $("#maps__start_p").val(0);
+                                $("#maps__count_p").val(def.count);
+                                loadAjax(getAjaxParams("maps__json_stringify"));
+                            })
+                        },
+                        {
+                            type: "text",
+                            label: "Name",
+                            name: "player_name",
+                            text: "all",
+                            onchange: (function() {
+                                $(this).val($(this).val() == "" ? "all" : $(this).val());
+                                $("#maps__url").val(replaceArr($("#maps__url").val(), $(this).val(), 5));
+                                $("#maps__start_p").val(0);
+                                $("#maps__count_p").val(def.count);
+                                loadAjax(getAjaxParams("maps__json_stringify"));
+                            })
+                        }
+                    ],
+                    ajax: {
+                        url: "/api/playersmap/all/all/all",
+                        type: "GET",
+                        datatype: "JSON"
+                    },
+                    dataJson: "playersmap",
+                    id: "id",
+                    extends: {
+                        addLastColumn: "addBtnGetFiles"
+                    }
+                });
+
+            });
+        </script>
     </head>
     <body>
-        <div>TODO write content</div>
+        <div id="header"></div>
+        <div id="content">
+            <div id="list_map">
+            </div>
+            <div id="list_map_files">
+            </div>
+        </div>
+        <div id="footer"></div>
     </body>
 </html>

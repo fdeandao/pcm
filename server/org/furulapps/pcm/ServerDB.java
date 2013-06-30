@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package org.furulapps.pcm;
 
 import com.almworks.sqlite4java.SQLiteConnection;
@@ -13,6 +9,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Properties;
@@ -25,76 +22,78 @@ import java.util.logging.Logger;
  */
 public class ServerDB {
 
-    static private SQLiteConnection db;
+    //static private SQLiteConnection db;
     static private String dbfile;
     static private Properties prop;
-    static final private String SELPLAYERCVS = "SELECT ID, hex(NAME) NAME, hex(SHIRTNAME) SHIRTNAME, hex(LINKEDFACE) LINKEDFACE, hex(FACESLOT) FACESLOT, hex(LINKEDHAIR) LINKEDHAIR, hex(HAIRSLOT) HAIRSLOT, hex(CLUBTEAM) CLUBTEAM, hex(NATIONALTEAM) NATIONALTEAM, hex(ISCONFIG) ISCONFIG FROM PLAYERCSV WHERE ";
-    static final private String SELPLAYERCVSCNT = "SELECT count(0) FROM PLAYERCSV WHERE ";
-    static final private String SELPLAYERMAP = "SELECT ID, hex(FACEFILE) FACEFILE, hex(HAIRFILE) HAIRFILE, hex(REALNAME) REALNAME, hex(EXISTSFACE) EXISTSFACE, hex(EXISTSHAIR) EXISTSHAIR FROM PLAYERMAP WHERE ";
-    static final private String SELPLAYERMAPCNT = "SELECT count(0) FROM PLAYERMAP WHERE ";
-    static final private String SELPLAYERFILE = "SELECT hex(IDFILE) IDFILE, hex(FILENAME) FILENAME, hex(SHORTFILENAME) SHORTFILENAME, hex(ISUSED) ISUSED FROM PLAYERFILE WHERE ";
-    static final private String SELFILE2PLAYER = "select hex(IDFILE) IDFILE, hex(FILENAME) FILENAME, hex(SHORTFILENAME) SHORTFILENAME, hex(ISUSED) ISUSED, hex(1) TYPE from PLAYERFILE\n"
-            + "where exists(select 1 from PLAYERMAP where id=? and EXISTSFACE=1\n"
-            + "and (lower(PLAYERFILE.SHORTFILENAME)=lower(FACEFILE)))\n"
+    static final private String SELPLAYERCVS = "select id, HEX(name) name, HEX(shirtname) shirtname, hex(nationality) nationality, HEX(linkedface) linkedface, HEX(faceslot) faceslot, HEX(linkedhair) linkedhair, HEX(hairslot) hairslot, HEX(clubteam) clubteam, HEX(nationalteam) nationalteam, HEX(isconfig) isconfig from playercsv where ";
+    static final private String SELPLAYERMAP = "select id, HEX(facefile) facefile, HEX(hairfile) hairfile, HEX(realname) realname, HEX(existsface) existsface, HEX(existshair) existshair from playermap where ";
+    static final private String SELPLAYERFILE = "select HEX(idfile) idfile, HEX(filename) filename, HEX(shortfilename) shortfilename, HEX(isused) isused from playerfile where ";
+    static final private String SELFILE2PLAYER = "select hex(idfile) idfile, hex(filename) filename, hex(shortfilename) shortfilename, hex(isused) isused, hex(1) type from playerfile\n"
+            + "where exists(select 1 from playermap where id=? and existsface=1\n"
+            + "and (lower(playerfile.shortfilename)=lower(facefile)))\n"
             + "union\n"
-            + "select hex(IDFILE) IDFILE, hex(FILENAME) FILENAME, hex(SHORTFILENAME) SHORTFILENAME, hex(ISUSED) ISUSED, hex(2) TYPE from PLAYERFILE\n"
-            + "where exists(select 1 from PLAYERMAP where id=? and EXISTSFACE=0\n"
-            + "and (lower(PLAYERFILE.SHORTFILENAME)=lower(FACEFILE)))\n"
+            + "select hex(idfile) idfile, hex(filename) filename, hex(shortfilename) shortfilename, hex(isused) isused, hex(2) type from playerfile\n"
+            + "where exists(select 1 from playermap where id=? and existsface=0\n"
+            + "and (lower(playerfile.shortfilename)=lower(facefile)))\n"
             + "union\n"
-            + "select hex(IDFILE) IDFILE, hex(FILENAME) FILENAME, hex(SHORTFILENAME) SHORTFILENAME, hex(ISUSED) ISUSED, hex(3) TYPE from PLAYERFILE\n"
-            + "where exists(select 1 from PLAYERMAP where id=? and EXISTSHAIR=1\n"
-            + "and (lower(PLAYERFILE.SHORTFILENAME)=lower(HAIRFILE)))\n"
+            + "select hex(idfile) idfile, hex(filename) filename, hex(shortfilename) shortfilename, hex(isused) isused, hex(3) type from playerfile\n"
+            + "where exists(select 1 from playermap where id=? and existshair=1\n"
+            + "and (lower(playerfile.shortfilename)=lower(hairfile)))\n"
             + "union\n"
-            + "select hex(IDFILE) IDFILE, hex(FILENAME) FILENAME, hex(SHORTFILENAME) SHORTFILENAME, hex(ISUSED) ISUSED, hex(4) TYPE from PLAYERFILE\n"
-            + "where exists(select 1 from PLAYERMAP where id=? and EXISTSHAIR=0\n"
-            + "and (lower(PLAYERFILE.SHORTFILENAME)=lower(HAIRFILE)))";
-    static final private String SELFILE2PLAYERDEEP = "select hex(IDFILE) IDFILE, hex(FILENAME) FILENAME, hex(SHORTFILENAME) SHORTFILENAME, hex(ISUSED) ISUSED, hex(5) TYPE from PLAYERFILE\n"
-            + "where exists(select 1 from PLAYERCSV where id=? and\n"
-            + "lower(SHORTFILENAME) like '%'||lower(replace(NAME,' ','%'))||'%')\n"
+            + "select hex(idfile) idfile, hex(filename) filename, hex(shortfilename) shortfilename, hex(isused) isused, hex(4) type from playerfile\n"
+            + "where exists(select 1 from playermap where id=? and existshair=0\n"
+            + "and (lower(playerfile.shortfilename)=lower(hairfile)))";
+    static final private String SELFILE2PLAYERDEEP = "select hex(idfile) idfile, hex(filename) filename, hex(shortfilename) shortfilename, hex(isused) isused, hex(5) type from playerfile\n"
+            + "where exists(select 1 from playercsv where id=? and\n"
+            + "lower(shortfilename) like '%'||lower(replace(name,' ','%'))||'%')\n"
             + "union\n"
-            + "select hex(IDFILE) IDFILE, hex(FILENAME) FILENAME, hex(SHORTFILENAME) SHORTFILENAME, hex(ISUSED) ISUSED, hex(6) TYPE from PLAYERFILE\n"
-            + "where exists(select 1 from PLAYERCSV where id=? and\n"
-            + "lower(SHORTFILENAME) like '%'||lower(replace(SHIRTNAME,' ','%'))||'%')\n"
+            + "select hex(idfile) idfile, hex(filename) filename, hex(shortfilename) shortfilename, hex(isused) isused, hex(6) type from playerfile\n"
+            + "where exists(select 1 from playercsv where id=? and\n"
+            + "lower(shortfilename) like '%'||lower(replace(shirtname,' ','%'))||'%')\n"
             + "union\n"
-            + "select hex(IDFILE) IDFILE, hex(FILENAME) FILENAME, hex(SHORTFILENAME) SHORTFILENAME, hex(ISUSED) ISUSED, hex(7) TYPE from PLAYERFILE\n"
-            + "where exists(select 1 from PLAYERCSV where id=? and\n"
-            + "lower(SHORTFILENAME) like '%'||lower(replace(NATIONALITY,' ','%'))||'%')\n"
+            + "select hex(idfile) idfile, hex(filename) filename, hex(shortfilename) shortfilename, hex(isused) isused, hex(7) type from playerfile\n"
+            + "where exists(select 1 from playercsv where id=? and\n"
+            + "lower(shortfilename) like '%'||lower(replace(nationality,' ','%'))||'%')\n"
             + "union\n"
-            + "select hex(IDFILE) IDFILE, hex(FILENAME) FILENAME, hex(SHORTFILENAME) SHORTFILENAME, hex(ISUSED) ISUSED, hex(8) TYPE from PLAYERFILE\n"
-            + "where exists(select 1 from PLAYERCSV where id=? and trim(CLUBTEAM) <> '' and\n"
-            + "lower(SHORTFILENAME) like '%'||lower(replace(CLUBTEAM,' ','%'))||'%')\n"
+            + "select hex(idfile) idfile, hex(filename) filename, hex(shortfilename) shortfilename, hex(isused) isused, hex(8) type from playerfile\n"
+            + "where exists(select 1 from playercsv where id=? and trim(clubteam) <> '' and\n"
+            + "lower(shortfilename) like '%'||lower(replace(clubteam,' ','%'))||'%')\n"
             + "union\n"
-            + "select hex(IDFILE) IDFILE, hex(FILENAME) FILENAME, hex(SHORTFILENAME) SHORTFILENAME, hex(ISUSED) ISUSED, hex(9) TYPE from PLAYERFILE\n"
-            + "where exists(select 1 from PLAYERCSV where id=? and trim(NATIONALTEAM) <> '' and\n"
-            + "lower(SHORTFILENAME) like '%'||lower(replace(NATIONALTEAM,' ','%'))||'%')";
+            + "select hex(idfile) idfile, hex(filename) filename, hex(shortfilename) shortfilename, hex(isused) isused, hex(9) type from playerfile\n"
+            + "where exists(select 1 from playercsv where id=? and trim(nationalteam) <> '' and\n"
+            + "lower(shortfilename) like '%'||lower(replace(nationalteam,' ','%'))||'%')";
 
     static {
         try {
             prop = new Properties();
             prop.load(new FileInputStream("../conf.properties"));
             /*queue = new SQLiteQueue(new File(prop.getProperty("dbpcmjava")));
-            queue.start();*/
+             queue.start();*/
             dbfile = prop.getProperty("dbpcmjava");
+            startDB();
         } catch (FileNotFoundException ex) {
             Logger.getLogger(ServerDB.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
             Logger.getLogger(ServerDB.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(ServerDB.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
-    private static void open() throws SQLiteException {
-        db = new SQLiteConnection(new File(prop.getProperty("dbpcmjava")));
-        db.open(true);
-        //db.exec("pragma encoding=\"UTF-8\"");
-    }
+    /*private static void open() throws SQLiteException {
+     db = new SQLiteConnection(new File(prop.getProperty("dbpcmjava")));
+     db.open(true);
+     //db.exec("pragma encoding=\"UTF-8\"");
+     }
 
-    private static void close() {
-        db.dispose();
-    }
+     private static void close() {
+     db.dispose();
+     }*/
     private static void stopDB(SQLiteQueue queue) throws InterruptedException {
+        queue.flush();
         queue.stop(true).join();
     }
-    
+
     private static SQLiteQueue startDB() throws InterruptedException {
         SQLiteQueue queue = new SQLiteQueue(new File(dbfile));
         queue.start();
@@ -123,11 +122,9 @@ public class ServerDB {
         return sb.toString();
     }
 
-    private static long getCount(String query) throws SQLiteException {
+    private static long getCount(String query, SQLiteConnection db) throws SQLiteException {
         long count = 0;
-        open();
-
-        SQLiteStatement st = db.prepare(query);
+        SQLiteStatement st = db.prepare("select count(0) from (" + query + ")");
         try {
             if (st.step()) {
                 count = st.columnLong(0);
@@ -135,7 +132,6 @@ public class ServerDB {
         } finally {
             st.dispose();
         }
-
         return count;
     }
 
@@ -143,19 +139,26 @@ public class ServerDB {
         SQLiteQueue queue = startDB();
         String ret = queue.execute(new SQLiteJob<String>() {
             @Override
-            protected String job(SQLiteConnection db) throws SQLiteException, InterruptedException {
+            protected String job(SQLiteConnection db) throws SQLiteException, InterruptedException, UnsupportedEncodingException {
                 StringBuilder buff = new StringBuilder();
-                buff.append("{\"PLAYERSCSV\": [");
-                SQLiteStatement st = db.prepare(SELPLAYERCVS + where + " LIMIT ? OFFSET ?");
+                buff.append("{\"playerscsv\": [");
+                SQLiteStatement st = db.prepare(SELPLAYERCVS + where + " LIMIT " + count + " OFFSET " + start);
                 try {
-                    st.bind(1, count);
-                    st.bind(2, start);
                     while (st.step()) {
-                        buff.append("{\"ID\": \"")
+                        boolean isConfig = false;
+                        buff.append("{\"id\": \"")
                                 .append(st.columnString(0))
                                 .append("\",");
-                        for (int i = 1; i < 10; i++) {
-                            buff.append("\"").append(st.getColumnName(i)).append("\":\"").append(hexToString(st.columnString(i))).append(i != 9 ? "\"," : "\"");
+                        for (int i = 1; i < 11; i++) {
+                            buff.append("\"").append(st.getColumnName(i)).append("\":\"").append(hexToString(st.columnString(i))).append(i != 10 ? "\"," : "\"");
+                            if (st.getColumnName(i).equals("isconfig") && hexToString(st.columnString(i)).equals("1")) {
+                                isConfig = true;
+
+                            }
+                        }
+                        if (isConfig) {
+                            buff.append(",\"config\": ")
+                                    .append(getPlayersMap("ID=" + st.columnString(0), 0, 99));
                         }
                         buff.append("},");
                     }
@@ -166,8 +169,8 @@ public class ServerDB {
                 if (comma > 0) {
                     buff = buff.deleteCharAt(comma);
                 }
-                buff.append("], \"COUNT\": \"");
-                buff.append(getCount(SELPLAYERCVSCNT + where));
+                buff.append("], \"count\": \"");
+                buff.append(getCount(SELPLAYERCVS + where, db));
                 buff.append("\"}");
                 return buff.toString();
             }
@@ -176,8 +179,13 @@ public class ServerDB {
         return ret;
     }
 
-    private static String convertCountryClub(String country, String club) {
-        return ("all".equals(country) ? "1=1" : "NATIONALITY='" + country + "'") + " and " + ("all".equals(club) ? "1=1" : "CLUBTEAM='" + club + "'");
+    private static String convertCountryClub(String country, String club, String query) {
+        String ret = ("all".equals(country) ? "1=1" : "NATIONALITY='" + country + "'") + " and " + ("all".equals(club) ? "1=1" : "(CLUBTEAM like '" + club + "' or (NATIONALTEAM) like '" + club + "')");
+        if (query.equals("") || ("all".equals(country) && ("all".equals(club)))) {
+            return ret;
+        } else {
+            return query + ret + ")";
+        }
     }
 
     private static String convertDataLike(String[] fields, String data) {
@@ -196,57 +204,60 @@ public class ServerDB {
         /* from CSV */
 
         return getPlayersCSV(
-                convertDataLike(new String[]{"NAME", "SHIRTNAME"}, name) + " and " + convertCountryClub(country, club), start, count);
+                convertDataLike(new String[]{"NAME", "SHIRTNAME"}, name) + " and " + convertCountryClub(country, club, ""), start, count);
     }
 
     public static String getPlayersNoConfig(String country, String club, String name, int start, int count) throws SQLiteException, UnsupportedEncodingException, InterruptedException {
         /* from CSV */
 
         return getPlayersCSV(
-                convertDataLike(new String[]{"NAME", "SHIRTNAME"}, name) + " and ISCONFIG = 0 and " + convertCountryClub(country, club), start, count);
+                convertDataLike(new String[]{"NAME", "SHIRTNAME"}, name) + " and ISCONFIG = 0 and " + convertCountryClub(country, club, ""), start, count);
     }
 
-    private static String getPlayersMap(String where, int start, int count) throws SQLiteException, UnsupportedEncodingException {
-        open();
-        StringBuilder buff = new StringBuilder();
-        buff.append("{\"PLAYERSMAP\": [");
-        SQLiteStatement st = db.prepare(SELPLAYERMAP + where + " LIMIT ? OFFSET ?");
-        try {
-            st.bind(1, count);
-            st.bind(2, start);
-            while (st.step()) {
-                buff.append("{\"ID\": \"")
-                        .append(st.columnString(0))
-                        .append("\",");
-                for (int i = 1; i < 6; i++) {
-                    buff.append("\"").append(st.getColumnName(i)).append("\":\"").append(hexToString(st.columnString(i))).append(i != 5 ? "\"," : "\"");
+    private static String getPlayersMapIn(final String where, final int start, final int count) throws SQLiteException, UnsupportedEncodingException, InterruptedException {
+        SQLiteQueue queue = startDB();
+        String ret = queue.execute(new SQLiteJob<String>() {
+            @Override
+            protected String job(SQLiteConnection db) throws SQLiteException, InterruptedException {
+                StringBuilder buff = new StringBuilder();
+                buff.append("{\"playersmap\": [");
+                SQLiteStatement st = db.prepare(SELPLAYERMAP + where + " LIMIT " + count + " OFFSET " + start);
+                try {
+                    while (st.step()) {
+                        buff.append("{\"id\": \"")
+                                .append(st.columnString(0))
+                                .append("\",");
+                        for (int i = 1; i < 6; i++) {
+                            buff.append("\"").append(st.getColumnName(i)).append("\":\"").append(hexToString(st.columnString(i))).append(i != 5 ? "\"," : "\"");
+                        }
+                        buff.append("},");
+                    }
+                } finally {
+                    st.dispose();
                 }
-                buff.append("},");
+                int comma = buff.lastIndexOf(",");
+                if (comma > 0) {
+                    buff = buff.deleteCharAt(comma);
+                }
+                buff.append("], \"count\": \"");
+                buff.append(getCount(SELPLAYERMAP + where, db));
+                buff.append("\"}");
+                return buff.toString().replace("\\", "\\\\");
             }
-        } finally {
-            st.dispose();
-        }
-        int comma = buff.lastIndexOf(",");
-        if (comma > 0) {
-            buff = buff.deleteCharAt(comma);
-        }
-        buff.append("], \"COUNT\": \"");
-        buff.append(getCount(SELPLAYERMAPCNT + where));
-        buff.append("\"}");
-        close();
-        return buff.toString().replace("\\", "\\\\");
+        }).complete();
+        stopDB(queue);
+        return ret;
     }
 
-    public static String getPlayersMap(String country, String club, String name, int start, int count) throws SQLiteException, UnsupportedEncodingException {
+    public static String getPlayersMap(String path, int start, int count) throws SQLiteException, UnsupportedEncodingException, InterruptedException {
         /* from Map */
-        return getPlayersMap(
-                convertDataLike(new String[]{"REALNAME", "FACEFILE", "HAIRFILE"}, name) + " and " + convertCountryClub(country, club), start, count);
+        return getPlayersMapIn(convertDataLike(new String[]{"REALNAME", "FACEFILE", "HAIRFILE"}, path), start, count);
     }
 
-    public static String getPlayersMapConflic(String country, String club, String name, int start, int count) throws SQLiteException, UnsupportedEncodingException {
+    public static String getPlayersMapConflic(String path, int start, int count) throws SQLiteException, UnsupportedEncodingException, InterruptedException {
         /* from Map */
-        return getPlayersMap(
-                convertDataLike(new String[]{"REALNAME", "FACEFILE", "HAIRFILE"}, name) + " and " + "(EXISTSFACE=0 or EXISTSHAIR=0 or not exists(select 1 from PLAYERCSV where PLAYERCSV.id=PLAYERMAP.id)) and " + convertCountryClub(country, club), start, count);
+        return getPlayersMapIn(
+                convertDataLike(new String[]{"REALNAME", "FACEFILE", "HAIRFILE"}, path) + " and " + "(EXISTSFACE=0 or EXISTSHAIR=0 or not exists(select 1 from PLAYERCSV where PLAYERCSV.id=PLAYERMAP.id)) ", start, count);
     }
 
     public static String getClubs() throws InterruptedException {
@@ -255,11 +266,11 @@ public class ServerDB {
             @Override
             protected String job(SQLiteConnection db) throws SQLiteException, InterruptedException {
                 StringBuilder buff = new StringBuilder();
-                buff.append("{\"CLUB\": [");
-                SQLiteStatement st = db.prepare("select hex(CLUBTEAM) from TEAM");
+                buff.append("{\"club\": [");
+                SQLiteStatement st = db.prepare("select hex(clubteam) from team");
                 try {
                     while (st.step()) {
-                        buff.append("{\"NAME\": \"")
+                        buff.append("{\"name\": \"")
                                 .append(hexToString(st.columnString(0)))
                                 .append("\"},");
                     }
@@ -284,11 +295,11 @@ public class ServerDB {
             @Override
             protected String job(SQLiteConnection db) throws SQLiteException, InterruptedException {
                 StringBuilder buff = new StringBuilder();
-                buff.append("{\"COUNTRY\": [");
-                SQLiteStatement st = db.prepare("select hex(NATIONALITY) from COUNTRY order by NATIONALITY");
+                buff.append("{\"country\": [");
+                SQLiteStatement st = db.prepare("select hex(nationality) from country order by nationality");
                 try {
                     while (st.step()) {
-                        buff.append("{\"NAME\": \"")
+                        buff.append("{\"name\": \"")
                                 .append(hexToString(st.columnString(0)))
                                 .append("\"},");
                     }
@@ -307,91 +318,84 @@ public class ServerDB {
         return ret;
     }
 
-    private static String getFiles(String where, int start, int count) throws SQLiteException {
-        open();
-        StringBuilder buff = new StringBuilder();
-        buff.append("{\"FILES\": [");
-        SQLiteStatement st = db.prepare(SELPLAYERFILE + where + " LIMIT ? OFFSET ?");
-        try {
-            st.bind(1, count);
-            st.bind(2, start);
-            while (st.step()) {
-                buff.append("{");
-                for (int i = 0; i < 4; i++) {
-                    buff.append("\"").append(st.getColumnName(i)).append("\":\"").append(hexToString(st.columnString(i))).append(i != 3 ? "\"," : "\"");
+    private static String getFiles(final String where, final int start, final int count) throws SQLiteException, InterruptedException {
+        SQLiteQueue queue = startDB();
+        String ret = queue.execute(new SQLiteJob<String>() {
+            @Override
+            protected String job(SQLiteConnection db) throws SQLiteException, InterruptedException {
+                StringBuilder buff = new StringBuilder();
+                buff.append("{\"files\": [");
+                SQLiteStatement st = db.prepare(SELPLAYERFILE + where + " LIMIT " + count + " OFFSET " + start);
+                try {
+                    while (st.step()) {
+                        buff.append("{");
+                        for (int i = 0; i < 4; i++) {
+                            buff.append("\"").append(st.getColumnName(i)).append("\":\"").append(hexToString(st.columnString(i))).append(i != 3 ? "\"," : "\"");
+                        }
+                        buff.append("},");
+                    }
+                } finally {
+                    st.dispose();
                 }
-                buff.append("},");
+                int comma = buff.lastIndexOf(",");
+                if (comma > 0) {
+                    buff = buff.deleteCharAt(comma);
+                }
+                buff.append("], \"count\": \"");
+                buff.append(getCount(SELPLAYERFILE + where, db));
+                buff.append("\"}");
+
+                return buff.toString().replace("\\", "\\\\");
             }
-        } finally {
-            st.dispose();
-        }
-        int comma = buff.lastIndexOf(",");
-        if (comma > 0) {
-            buff = buff.deleteCharAt(comma);
-        }
-        buff.append("]}");
-        close();
-        return buff.toString().replace("\\", "\\\\");
+        }).complete();
+        stopDB(queue);
+        return ret;
     }
 
-    public static String getFiles(int start, int count) throws SQLiteException {
+    public static String getFiles(int start, int count) throws SQLiteException, InterruptedException {
         return getFiles(" 1=1 ", start, count);
     }
 
-    public static String getFilesConflic(int start, int count) throws SQLiteException {
+    public static String getFilesConflic(int start, int count) throws SQLiteException, InterruptedException {
         return getFiles(" ISUSED=0 ", start, count);
     }
 
-    public static String getFilesToPlayer(int player, boolean deep) throws SQLiteException {
-        open();
-        StringBuilder buff = new StringBuilder();
-        String query = (deep ? SELFILE2PLAYER + " union " + SELFILE2PLAYERDEEP : SELFILE2PLAYER) + " order by TYPE";
-        buff.append("{\"FILESTOPLAYER\": [");
-        SQLiteStatement st = db.prepare(query);
-        for (int i = 1; i <= (deep ? 9 : 4); i++) {
-            st.bind(i, player);
-        }
-        int founds = 0;
-        try {
-            while (st.step()) {
-                founds++;
-                buff.append("{");
-                for (int i = 0; i < 5; i++) {
-                    buff.append("\"").append(st.getColumnName(i)).append("\":\"").append(hexToString(st.columnString(i))).append(i != 4 ? "\"," : "\"");
-                }
-                buff.append("},");
-            }
-        } finally {
-            st.dispose();
-        }
-        if (founds == 0 && !deep) {
-            buff.delete(0, buff.length());
-            buff.append("{\"FILESTOPLAYER\": [");
-            st = db.prepare(SELFILE2PLAYERDEEP + " order by TYPE");
-            for (int i = 1; i <= 5; i++) {
-                st.bind(i, player);
-            }
-            try {
-                while (st.step()) {
-                    founds++;
-                    buff.append("{");
-                    for (int i = 0; i < 5; i++) {
-                        buff.append("\"").append(st.getColumnName(i)).append("\":\"").append(hexToString(st.columnString(i))).append(i != 4 ? "\"," : "\"");
+    public static String getFilesToPlayer(final int player, final boolean deep, final int start, final int count) throws SQLiteException, InterruptedException {
+        SQLiteQueue queue = startDB();
+        String ret = queue.execute(new SQLiteJob<String>() {
+            @Override
+            protected String job(SQLiteConnection db) throws SQLiteException, InterruptedException {
+                StringBuilder buff = new StringBuilder();
+                String orderLimit = " order by TYPE LIMIT " + count + " OFFSET " + start;
+                String query = (deep ? SELFILE2PLAYER + " union " + SELFILE2PLAYERDEEP : SELFILE2PLAYER);
+                buff.append("{\"filestoplayer\": [");
+                query = query.replaceAll("\\?", player + "");
+                SQLiteStatement st = db.prepare(query + orderLimit);
+                try {
+                    while (st.step()) {
+                        buff.append("{");
+                        for (int i = 0; i < 5; i++) {
+                            buff.append("\"").append(st.getColumnName(i)).append("\":\"").append(hexToString(st.columnString(i))).append(i != 4 ? "\"," : "\"");
+                        }
+                        buff.append("},");
                     }
-                    buff.append("},");
+                } finally {
+                    st.dispose();
                 }
-            } finally {
-                st.dispose();
-            }
-        }
 
-        int comma = buff.lastIndexOf(",");
-        if (comma > 0) {
-            buff = buff.deleteCharAt(comma);
-        }
-        buff.append("]}");
-        close();
-        return buff.toString().replace("\\", "\\\\");
+                int comma = buff.lastIndexOf(",");
+                if (comma > 0) {
+                    buff = buff.deleteCharAt(comma);
+                }
+                buff.append("], \"count\": \"");
+                buff.append(getCount(query, db));
+                buff.append("\"}");
+                return buff.toString().replace("\\", "\\\\");
+            }
+        }).complete();
+        stopDB(queue);
+        return ret;
+
     }
 
     private static String getSplitName(String query, String name) {
@@ -404,78 +408,160 @@ public class ServerDB {
     }
 
     private static String getSelPlayer2File(String fileName, String[] search) {
-        return "SELECT ID, hex(NAME) NAME, hex(SHIRTNAME) SHIRTNAME, hex(LINKEDFACE) LINKEDFACE, hex(FACESLOT) FACESLOT, hex(LINKEDHAIR) LINKEDHAIR, hex(HAIRSLOT) HAIRSLOT, hex(CLUBTEAM) CLUBTEAM, hex(NATIONALTEAM) NATIONALTEAM, hex(ISCONFIG) ISCONFIG, hex(1) TYPE\n"
-                + "FROM PLAYERCSV WHERE " + getSplitName(" lower(NAME) like '%?%' or lower(SHIRTNAME) like '%?%' ", fileName) + " \n"
+        return "select id, hex(name) name, hex(shirtname) shirtname, hex(linkedface) linkedface, hex(faceslot) faceslot, hex(linkedhair) linkedhair, hex(hairslot) hairslot, hex(clubteam) clubteam, hex(nationalteam) nationalteam, hex(isconfig) isconfig, hex(1) type\n"
+                + "from playercsv where " + getSplitName(" lower(NAME) like '%?%' or lower(SHIRTNAME) like '%?%' ", fileName) + " \n"
                 + "union\n"
-                + "SELECT ID, hex(NAME) NAME, hex(SHIRTNAME) SHIRTNAME, hex(LINKEDFACE) LINKEDFACE, hex(FACESLOT) FACESLOT, hex(LINKEDHAIR) LINKEDHAIR, hex(HAIRSLOT) HAIRSLOT, hex(CLUBTEAM) CLUBTEAM, hex(NATIONALTEAM) NATIONALTEAM, hex(ISCONFIG) ISCONFIG, hex(2) TYPE\n"
+                + "SELECT id, hex(name) name, hex(shirtname) shirtname, hex(linkedface) linkedface, hex(faceslot) faceslot, hex(linkedhair) linkedhair, hex(hairslot) hairslot, hex(clubteam) clubteam, hex(nationalteam) nationalteam, hex(isconfig) isconfig, hex(2) type\n"
                 + "FROM PLAYERCSV WHERE " + (search.length > 2 ? " 1=1 " : " 1=0 ") + " and (lower(CLUBTEAM) like '%" + (search.length > 2 ? search[search.length - 2] : "") + "%' or lower(NATIONALTEAM) like '%" + (search.length > 2 ? search[search.length - 2] : "") + "%' or lower(NATIONALITY) like '%" + (search.length > 2 ? search[search.length - 2] : "") + "%') order by TYPE";
     }
 
-    public static String getPlayersToFile(int idFile, boolean deep) throws SQLiteException {
-        open();
-        SQLiteStatement st = db.prepare("select hex(lower(SHORTFILENAME)) from PLAYERFILE where idfile=" + idFile);
-        String fileName = "";
-        StringBuilder buff = new StringBuilder();
-        try {
-            if (st.step()) {
-                String[] search = hexToString(st.columnString(0))
-                        .replaceAll(".bin", "")
-                        .replaceAll("_hair", "")
-                        .replaceAll("_face", "")
-                        .replaceAll("_", "%")
-                        .split("\\\\");
-                if (search.length > 0) {
-                    fileName = search[search.length - 1];
-                    fileName = fileName.indexOf(".") > 0 ? fileName.substring(fileName.indexOf(".") + 1, fileName.length()) : fileName;
-                    buff.append("{\"PLAYERSCSV\": [");
-                    st = db.prepare(getSelPlayer2File(fileName, deep ? search : new String[]{}));
-                    try {
-                        while (st.step()) {
-                            buff.append("{\"ID\": \"")
-                                    .append(st.columnString(0))
-                                    .append("\",");
-                            for (int i = 1; i < 11; i++) {
-                                buff.append("\"").append(st.getColumnName(i)).append("\":\"").append(hexToString(st.columnString(i))).append(i != 10 ? "\"," : "\"");
+    public static String getPlayersToFile(final int idFile, final boolean deep, final int start, final int count) throws SQLiteException, InterruptedException {
+        SQLiteQueue queue = startDB();
+        String ret = queue.execute(new SQLiteJob<String>() {
+            @Override
+            protected String job(SQLiteConnection db) throws SQLiteException, InterruptedException {
+                SQLiteStatement st = db.prepare("select hex(lower(shortfilename)) from playerfile where idfile=" + idFile);
+                String fileName = "";
+                StringBuilder buff = new StringBuilder();
+                try {
+                    if (st.step()) {
+                        String[] search = hexToString(st.columnString(0))
+                                .replaceAll(".bin", "")
+                                .replaceAll("_hair", "")
+                                .replaceAll("_face", "")
+                                .replaceAll("_", "%")
+                                .split("\\\\");
+                        if (search.length > 0) {
+                            fileName = search[search.length - 1];
+                            fileName = fileName.indexOf(".") > 0 ? fileName.substring(fileName.indexOf(".") + 1, fileName.length()) : fileName;
+                            buff.append("{\"playerscsv\": [");
+                            String query = getSelPlayer2File(fileName, deep ? search : new String[]{});
+                            st = db.prepare(query + " LIMIT " + count + " OFFSET " + start);
+                            try {
+                                while (st.step()) {
+                                    buff.append("{\"id\": \"")
+                                            .append(st.columnString(0))
+                                            .append("\",");
+                                    for (int i = 1; i < 11; i++) {
+                                        buff.append("\"").append(st.getColumnName(i)).append("\":\"").append(hexToString(st.columnString(i))).append(i != 10 ? "\"," : "\"");
+                                    }
+                                    buff.append("},");
+                                }
+                            } finally {
+                                st.dispose();
                             }
-                            buff.append("},");
+                            int comma = buff.lastIndexOf(",");
+                            if (comma > 0) {
+                                buff = buff.deleteCharAt(comma);
+                            }
+                            buff.append("], \"count\": \"");
+                            buff.append(getCount(query, db));
+                            buff.append("\"}");
+                        } else {
+                            buff.append("{\"error\": \"nothing found\"}");
                         }
-                    } finally {
-                        st.dispose();
+                    } else {
+                        buff.append("{\"error\": \"nothing found\"}");
                     }
-                    int comma = buff.lastIndexOf(",");
-                    if (comma > 0) {
-                        buff = buff.deleteCharAt(comma);
-                    }
-                    buff.append("]}");
-                } else {
-                    buff.append("{\"error\": \"NOTHING FOUND\"}");
+                } finally {
+                    st.dispose();
                 }
-            } else {
-                buff.append("{\"error\": \"NOTHING FOUND\"}");
+                return buff.toString().replace("\\", "\\\\");
             }
-        } finally {
-            st.dispose();
-        }
-        close();
-        return buff.toString().replace("\\", "\\\\");
+        }).complete();
+        stopDB(queue);
+        return ret;
     }
 
-    public static ByteArrayOutputStream getFileById(String fileid) throws FileNotFoundException, IOException, SQLiteException {
-        open();
-        String fileName = "";
-        SQLiteStatement st = db.prepare(SELPLAYERFILE + " IDFILE = " + fileid);
-        try {
-            if (st.step()) {
-                fileName = hexToString(st.columnString(1));
+    public static ByteArrayOutputStream getFileById(final String fileid) throws FileNotFoundException, IOException, SQLiteException, InterruptedException {
+        return getFile(" idfile = " + fileid);
+    }
+
+    public static ByteArrayOutputStream getFileByName(final String filename) throws FileNotFoundException, IOException, SQLiteException, InterruptedException {
+        return getFile(" lower(shortfilename) = '" + filename.toLowerCase() + "'");
+    }
+
+    public static ByteArrayOutputStream getFile(final String where) throws FileNotFoundException, IOException, SQLiteException, InterruptedException {
+        SQLiteQueue queue = startDB();
+        String ret = queue.execute(new SQLiteJob<String>() {
+            @Override
+            protected String job(SQLiteConnection db) throws SQLiteException, InterruptedException, FileNotFoundException, IOException {
+                String fileName = "";
+                SQLiteStatement st = db.prepare(SELPLAYERFILE + where);
+                try {
+                    if (st.step()) {
+                        fileName = hexToString(st.columnString(1));
+                    }
+                } finally {
+                    st.dispose();
+                }
+
+                return fileName;
             }
-        } finally {
-            st.dispose();
-        }
-        close();
-        if (fileName.equals("")) {
+        }).complete();
+        stopDB(queue);
+        if (ret.equals("")) {
+            System.err.println("1");
             return new ByteArrayOutputStream();
         } else {
-            return BinToPNG.getImagePNG(fileName);
+            return BinToPNG.getImagePNG(ret);
         }
     }
+    
+    public static String getDirectoryTree() throws SQLiteException, InterruptedException {
+        SQLiteQueue queue = startDB();
+        String ret = queue.execute(new SQLiteJob<String>() {
+            @Override
+            protected String job(SQLiteConnection db) throws SQLiteException, InterruptedException {
+                SQLiteStatement st = db.prepare("select hex(lower(FILEDIR)) FILEDIR from CONFIG");
+                String dir = "";
+                try {
+                    if (st.step()) {
+                        dir = hexToString(st.columnString(0));   
+                    }
+                } finally {
+                    st.dispose();
+                }
+                return dir.replace("\\", "\\\\");
+            }
+        }).complete();
+        stopDB(queue);
+        if(!ret.equals("")){
+            File file = new File(ret);
+            if(file.exists()){
+                FilenameFilter filter = new OnlyDirectoryFFImp();
+                return walkin(file, filter);
+            }else{
+                return "{\"error\": \"File not exists " + ret + "\"}";
+            }
+        }else{
+            return "{\"error\": \"Config not found\"}";
+        }
+    }
+
+    private static String walkin(File dir, FilenameFilter filter) {
+        StringBuilder nodes = new StringBuilder().append("[");
+        File listFile[] = dir.listFiles(filter);
+        if (listFile != null) {
+            for (int i = 0; i < listFile.length; i++) {
+                if (listFile[i].isDirectory()) {
+                    nodes.append("{\"label\": \"").append(listFile[i].getName().toString()).append("\"");
+                    File [] lsFilesTmp = listFile[i].listFiles(filter);
+                    if(lsFilesTmp != null && lsFilesTmp.length > 0){
+                        nodes.append(", \"children\" : ").append(walkin(listFile[i], filter));
+                    }
+                    nodes.append("}").append(listFile.length-1 == i ? "" : ",");
+                }
+            }
+        }
+        nodes.append("]");
+        return nodes.toString();
+    }
+}
+
+class OnlyDirectoryFFImp implements FilenameFilter {
+  @Override
+  public boolean accept(File current, String name) {
+    return new File(current, name).isDirectory();
+  }
 }

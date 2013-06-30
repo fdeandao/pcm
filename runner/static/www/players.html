@@ -7,113 +7,162 @@ and open the template in the editor.
     <head>
         <title></title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <link rel="stylesheet" href="css/pcm.site.css">
+        <link rel="stylesheet" href="css/jquery-ui.css">
         <script  src="/js/libs/jquery-1.9.0/jquery.min.js"></script>
+        <script  src="/js/libs/jqueryui-1.10.0/jquery-ui.min.js"></script>
         <script  src="/js/pcm.utils.js"></script>
         <script>
-            /**
-             * Comment
-             */
-            function loadPlayers() {
-                var nation = $("#p_nationallity").val();
-                var club = $("#p_club").val();
-                var name = $("#p_name").val();
-                var start = $("#p_start").val();
-                var count = $("#p_count").val();
-                $.get("/api/players/" + nation + "/" + club + "/" + name + "/" + start + "/" + count, function(data) {
-                    $("#thplayers").empty();
-                    $("#tbplayers").empty();
-                    $("#r_resp").val("");
-                    if (data.PLAYERSCSV) {
-                        if (data.PLAYERSCSV.length > 0) {
-                            for (var colname in data.PLAYERSCSV[0]) {
-                                $("#thplayers").append("<th>" + colname + "</th>");
-                            }
+            function addBtnGetFiles(currData, id) {
+                return "<input type='button' value='Get Files' onclick='getFileToPlayer(" + currData.id + ", \"list_files\", \"" + id + "\");' />" +
+                        (currData.config ? "<input type='button' value='Show Pictures' onclick='loadImagesAjax($(this), \"" + id + "\", \""+ 
+                            currData.config.playersmap[0].facefile.replace(/\\/g, "\\\\") +"\", \"" + currData.config.playersmap[0].hairfile.replace(/\\/g, "\\\\") + "\")' />" +
+                                "<div id='" + id + "_pictures' style='display:none;'>" +
+                                "</div>" : "");
+            }
+            
+            function postdoneFileToPlayer(options, data) {
+                $("#" + options.div).dialog("open");
+            }
+            function failFileToPlayer(options, data) {
+                $("#" + options.div).empty();
+                alert("error loading data");
+            }
 
-                            for (var i = 0; i < data.PLAYERSCSV.length; i++) {
-                                var player = data.PLAYERSCSV[i];
-                                var row = $("<tr>");
-                                for (var dat in player) {
-                                    row.append("<td>" + player[dat] + "</td>");
+            function getFileToPlayer(idfile, divResp, id) {
+                createTableMaster({
+                    div: divResp,
+                    prefix: "subplayer_",
+                    headJSON: id + "_hid",
+                    params: [
+                        {
+                            type: "checkbox",
+                            label: "More options players",
+                            name: "more_players",
+                            onchange: (function() {
+                                var dat = $("#subplayer__url").val();
+                                if ($(this).is(':checked')) {
+                                    $("#subplayer__url").val(dat.replace("false", "true"));
+                                } else {
+                                    $("#subplayer__url").val(dat.replace("true", "false"));
                                 }
-                                $("#tbplayers").append(row);
-                            }
+                                $("#subplayer__start_p").val(0);
+                                $("#subplayer__count_p").val(def.count);
+                                loadAjax(getAjaxParams("subplayer__json_stringify"));
+                            })
                         }
+                    ],
+                    ajax: {
+                        url: "/api/filestoplayer/" + idfile + "/false",
+                        type: "GET",
+                        datatype: "JSON"
+                    },
+                    dataJson: "filestoplayer",
+                    id: idfile,
+                    extends: {
+                        postDone: "postdoneFileToPlayer",
+                        fail: "failFileToPlayer"
                     }
-                    if (data.COUNT) {
-                        $("#r_resp").val("Results: " + data.COUNT);
-                    }
-                    if (data.error) {
-                        $("#r_resp").val(data.error);
-                    }
-                })
-                        .fail(function() {
-                    alert("error");
                 });
             }
 
             $(document).ready(function() {
+                $(document).ajaxStart(function() {
+                    showProgress();
+                }).ajaxStop(function() {
+                    hideProgress();
+                });
+
                 $("#header").load("menu.html");
                 $("#footer").load("footer.html");
-                getClubs($("#p_club"), function() {
-                    getCountries($("#p_nationallity"), function() {
-                        loadPlayers();
-                    });
+                $("#list_files").dialog({
+                    autoOpen: false,
+                    resizable: true,
+                    width: 'auto',
+                    modal: true
                 });
-                $("#p_search").click(function() {
-                    loadPlayers();
+
+                createTableMaster({
+                    div: "list_player",
+                    prefix: "players_",
+                    head: "List Players",
+                    params: [
+                        {
+                            type: "checkbox",
+                            label: "Only No Config",
+                            name: "configplayers",
+                            onchange: (function() {
+                                var dat = $("#players__url").val();
+                                if ($(this).is(':checked')) {
+                                    $("#players__url").val(dat.replace("players", "playersnoconfig"));
+                                } else {
+                                    $("#players__url").val(dat.replace("playersnoconfig", "players"));
+                                }
+                                $("#players__start_p").val(0);
+                                $("#players__count_p").val(def.count);
+                                loadAjax(getAjaxParams("players__json_stringify"));
+                            })
+                        },
+                        {
+                            type: "select",
+                            label: "Nationality",
+                            name: "countrysel",
+                            data: "country",
+                            onchange: (function() {
+                                $("#players__url").val(replaceArr($("#players__url").val(), $(this).val(), 3));
+                                $("#players__start_p").val(0);
+                                $("#players__count_p").val(def.count);
+                                loadAjax(getAjaxParams("players__json_stringify"));
+                            })
+                        },
+                        {
+                            type: "select",
+                            label: "Club",
+                            name: "clubsel",
+                            data: "club",
+                            onchange: (function() {
+                                $("#players__url").val(replaceArr($("#players__url").val(), $(this).val(), 4));
+                                $("#players__start_p").val(0);
+                                $("#players__count_p").val(def.count);
+                                loadAjax(getAjaxParams("players__json_stringify"));
+                            })
+                        },
+                        {
+                            type: "text",
+                            label: "Name",
+                            name: "player_name",
+                            text: "all",
+                            onchange: (function() {
+                                $(this).val($(this).val() == "" ? "all" : $(this).val());
+                                $("#players__url").val(replaceArr($("#players__url").val(), $(this).val(), 5));
+                                $("#players__start_p").val(0);
+                                $("#players__count_p").val(def.count);
+                                loadAjax(getAjaxParams("players__json_stringify"));
+                            })
+                        }
+                    ],
+                    ajax: {
+                        url: "/api/players/all/all/all",
+                        type: "GET",
+                        datatype: "JSON"
+                    },
+                    dataJson: "playerscsv",
+                    id: "id",
+                    extends: {
+                        addLastColumn: "addBtnGetFiles"
+                    }
                 });
-                $("#p_back").click(function() {
-                    var sta = parseInt($("#p_start").val());
-                    var cou = parseInt($("#p_count").val());
-                    sta = (sta - cou < 0) ? 0 : sta - cou;
-                    $("#p_start").val(sta);
-                    loadPlayers();
-                });
-                $("#p_next").click(function() {
-                    var sta = parseInt($("#p_start").val());
-                    var cou = parseInt($("#p_count").val());
-                    sta += cou;
-                    $("#p_start").val(sta);
-                    loadPlayers();
-                });
-                $("#p_nationallity").change(function(){
-                    $("#p_start").val("1");
-                });
-                $("#p_club").change(function(){
-                    $("#p_start").val("1");
-                });
-                $("#p_name").change(function(){
-                    $("#p_start").val("1");
-                });
+
             });
         </script>
     </head>
     <body>
         <div id="header"></div>
         <div id="content">
-            <div id="param_search">
-                <label for="p_nationallity">Nationality</label>
-                <select id="p_nationallity"></select>
-                <label for="p_club">Club</label>
-                <select id="p_club"></select>
-                <label for="p_name">Name</label>
-                <input id="p_name" type="text" value="all"/>
-                <label for="p_start">Start</label>
-                <input id="p_start" type="text" value="1"/>
-                <label for="p_count">Count</label>
-                <input id="p_count" type="text" value="10"/>
-                <input id="p_search" type="button" value="Search"/>
-                <input id="p_back" type="button" value="Back"/>
-                <input id="p_next" type="button" value="Next"/>
-                <span id="r_resp"></span>
+            <div id="list_player">
             </div>
-            <table>
-                <thead id="thplayers">
-                </thead>
-                <tbody id="tbplayers">
-
-                </tbody>
-            </table>
+            <div id="list_files">
+            </div>
         </div>
         <div id="footer"></div>
     </body>

@@ -1,0 +1,30 @@
+/* 
+    Document   : pcm.site
+    Created on : Jun 21, 2013, 9:40:55 PM
+    Author     : koferdo
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+root { 
+    display: block;
+}
+label, input.text, input.checkbox, select { display:block; }
+input.text { margin-bottom:12px; width:95%; padding: .4em; }
+h1 { font-size: 1.2em; margin: .6em 0; }
+body { font-size: 62.5%; }
+.ui-dialog .ui-state-error { padding: .3em; }
+.content {
+    font: 15px/22.5px "Helvetica Neue", HelveticaNeue, Helvetica, Arial, sans-serif;
+}
+
+.modal-overlay {
+    position: fixed;
+    z-index: 10;
+    background: black;
+    display: block;
+    opacity: .75;
+    filter: alpha(opacity=75);
+    width: 100%;
+    height: 100%;
+}

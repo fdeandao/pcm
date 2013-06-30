@@ -64,7 +64,7 @@ public class BinToPNG {
     
     public static int descomSize(byte[] input) {
         int size = 0;
-        byte[] result = new byte[input.length * 2];
+        byte[] result = new byte[input.length * 4];
         try {
             Inflater decompresser = new Inflater(false);
             decompresser.setInput(input, 16, input.length - 16);
